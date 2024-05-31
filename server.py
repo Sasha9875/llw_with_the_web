@@ -3,17 +3,22 @@ import threading
 import os
 import time
 import logging
+import json
 from datetime import datetime
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Рабочая директория сервера
-WEB_ROOT = './web_root'
+# Чтение конфигурационного файла
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
+PORT = config['port']
+WEB_ROOT = config['web_root']
+MAX_REQUEST_SIZE = config['max_request_size']
+SERVER_NAME = config['server_name']
 
 # HTTP-заголовок ответа
-SERVER_NAME = "SimplePythonServer/0.1"
-
 def get_http_header(content_length, content_type="text/html"):
     date = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
     return f"""HTTP/1.1 200 OK
@@ -25,19 +30,22 @@ Connection: close
 
 """
 
-# Создание рабочей директории и файлов
+# Создание рабочей директории и файлов, если их нет
 os.makedirs(WEB_ROOT, exist_ok=True)
-with open(os.path.join(WEB_ROOT, 'index.html'), 'w') as f:
-    f.write('<H1>Index File</H1>')
-with open(os.path.join(WEB_ROOT, '1.html'), 'w') as f:
-    f.write('<H1>First file</H1>')
-with open(os.path.join(WEB_ROOT, '2.html'), 'w') as f:
-    f.write('<H1>Second file</H1>')
+if not os.path.exists(os.path.join(WEB_ROOT, 'index.html')):
+    with open(os.path.join(WEB_ROOT, 'index.html'), 'w') as f:
+        f.write('<H1>Index File</H1>')
+if not os.path.exists(os.path.join(WEB_ROOT, '1.html')):
+    with open(os.path.join(WEB_ROOT, '1.html'), 'w') as f:
+        f.write('<H1>Первый файл</H1>')
+if not os.path.exists(os.path.join(WEB_ROOT, '2.html')):
+    with open(os.path.join(WEB_ROOT, '2.html'), 'w') as f:
+        f.write('<H1>Второй файл</H1>')
 
 def handle_client_connection(conn, addr):
     try:
         logging.info(f"Connected to {addr}")
-        data = conn.recv(8192)
+        data = conn.recv(MAX_REQUEST_SIZE)
         msg = data.decode()
         logging.info(f"Request: {msg}")
         
@@ -71,11 +79,12 @@ def handle_client_connection(conn, addr):
 def start_server():
     sock = socket.socket()
     try:
-        sock.bind(('', 80))
+        sock.bind(('', PORT))
     except OSError:
-        sock.bind(('', 8080))
+        logging.error(f"Port {PORT} is already in use. Exiting.")
+        return
     sock.listen(5)
-    logging.info("Server started on port 80 or 8080")
+    logging.info(f"Server started on port {PORT}")
     
     while True:
         conn, addr = sock.accept()
@@ -86,6 +95,7 @@ if __name__ == "__main__":
     start_server()
 
 
-# http://localhost:80/1.html
-# http://localhost:80/2.html
-# http://localhost:80
+
+# http://localhost:8080/1.html
+# http://localhost:8080/2.html
+# http://localhost:8080

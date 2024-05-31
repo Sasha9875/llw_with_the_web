@@ -1,0 +1,6 @@
+{
+    "port": 8080,
+    "web_root": "./web_root",
+    "max_request_size": 8192,
+    "server_name": "SimplePythonServer/0.1"
+}
